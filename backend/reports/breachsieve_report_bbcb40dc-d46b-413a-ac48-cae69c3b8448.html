@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BreachSieve Vulnerability Report - https://juice-shop.herokuapp.com</title>
+    <style>
+        :root {
+            --bg-color: #0b1120;
+            --surface-color: #1e293b;
+            --surface-border: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-cyan: #06b6d4;
+            --accent-emerald: #10b981;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 30px;
+        }
+        .report-container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border: 1px solid var(--surface-border);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--surface-border);
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+        .logo-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .report-subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        .risk-badge {
+            background: #0f172a;
+            border: 1px solid var(--accent-cyan);
+            border-radius: 10px;
+            padding: 12px 20px;
+            text-align: center;
+        }
+        .risk-score {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--accent-cyan);
+        }
+        .risk-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .metric-card {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--surface-border);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 26px;
+            font-weight: 700;
+        }
+        .metric-name {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .section-box {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 25px;
+        }
+        .section-heading {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #f1f5f9;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 8px;
+        }
+        .scope-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .scope-table th, .scope-table td {
+            text-align: left;
+            padding: 10px 14px;
+            border-bottom: 1px solid #334155;
+            font-size: 14px;
+        }
+        .scope-table th {
+            color: var(--text-muted);
+            font-weight: 600;
+            width: 25%;
+        }
+        .rule-pre {
+            background: #0f172a;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            color: #e2e8f0;
+        }
+        .finding-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            margin-bottom: 22px;
+            overflow: hidden;
+        }
+        .finding-header {
+            background: #0f172a;
+            padding: 18px 24px;
+            border-bottom: 1px solid #334155;
+        }
+        .finding-title-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        .finding-id {
+            font-family: monospace;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            font-size: 15px;
+        }
+        .finding-title {
+            font-size: 18px;
+            font-weight: 600;
+            flex-grow: 1;
+        }
+        .severity-badge {
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 12px;
+            color: #ffffff;
+            text-transform: uppercase;
+        }
+        .novel-badge {
+            background: #8b5cf6;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .finding-meta-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .meta-tag {
+            background: #1e293b;
+            border: 1px solid #475569;
+            color: #cbd5e1;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        .finding-body {
+            padding: 24px;
+        }
+        .section-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin: 16px 0 6px 0;
+        }
+        .section-label:first-child {
+            margin-top: 0;
+        }
+        .url-box {
+            background: #0f172a;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+            word-break: break-all;
+            color: #38bdf8;
+            border: 1px solid #1e293b;
+        }
+        .description-text {
+            font-size: 14px;
+            color: #e2e8f0;
+        }
+        .ai-box {
+            background: rgba(14, 165, 233, 0.08);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 18px 0;
+        }
+        .ai-box-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .verdict-tag {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .verdict-confirmed { background: #ef4444; color: white; }
+        .verdict-needs_review { background: #f59e0b; color: white; }
+        .verdict-false_positive { background: #10b981; color: white; }
+        .ai-reasoning {
+            font-size: 13px;
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+        .evidence-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 16px 0;
+        }
+        .evidence-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        .code-block {
+            background: #090d16;
+            border: 1px solid #1e293b;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #94a3b8;
+            max-height: 220px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .remediation-box {
+            background: #0f172a;
+            border-left: 4px solid var(--accent-emerald);
+            padding: 14px 18px;
+            border-radius: 0 8px 8px 0;
+        }
+        .remediation-text {
+            font-family: monospace;
+            font-size: 13px;
+            color: #e2e8f0;
+            white-space: pre-wrap;
+        }
+        .references-list {
+            margin-left: 20px;
+            margin-top: 6px;
+            font-size: 13px;
+        }
+        .references-list a {
+            color: #38bdf8;
+            text-decoration: none;
+        }
+        .references-list a:hover {
+            text-decoration: underline;
+        }
+        .remed-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .remed-table th, .remed-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #334155;
+            text-align: left;
+        }
+        .remed-table th {
+            background: #0f172a;
+            color: var(--text-muted);
+        }
+        .remed-cell {
+            font-family: monospace;
+            font-size: 12px;
+            color: #cbd5e1;
+        }
+        .severity-pill {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+        }
+        .methodology-box {
+            background: #0f172a;
+            border: 1px solid var(--surface-border);
+            border-radius: 10px;
+            padding: 20px;
+            font-size: 13px;
+            color: #94a3b8;
+            line-height: 1.6;
+        }
+        @media print {
+            body { background-color: #ffffff; color: #000000; padding: 0; }
+            .report-container { max-width: 100%; }
+            .header, .section-box, .finding-card {
+                background: #ffffff !important;
+                border: 1px solid #cccccc !important;
+                color: #000000 !important;
+                page-break-inside: avoid;
+            }
+            .code-block, .url-box, .remediation-box {
+                background: #f8fafc !important;
+                color: #000000 !important;
+                border: 1px solid #e2e8f0 !important;
+            }
+            .meta-tag, .finding-header {
+                background: #f1f5f9 !important;
+                color: #000000 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- HEADER & EXECUTIVE SUMMARY -->
+        <div class="header">
+            <div class="header-top">
+                <div class="logo-title">
+                    <div>
+                        <div class="brand">BREACHSIEVE</div>
+                        <div class="report-subtitle">Automated DAST & Gemini-Triaged Security Assessment Report</div>
+                    </div>
+                </div>
+                <div class="risk-badge">
+                    <div class="risk-score">10.0</div>
+                    <div class="risk-label">Overall Risk Score</div>
+                </div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" style="color: #ef4444;">2</div>
+                    <div class="metric-name">Critical</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: #f97316;">0</div>
+                    <div class="metric-name">High</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: #eab308;">0</div>
+                    <div class="metric-name">Medium</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: #3b82f6;">0</div>
+                    <div class="metric-name">Low</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: #10b981;">4</div>
+                    <div class="metric-name">False Positives Filtered</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: #a855f7;">0</div>
+                    <div class="metric-name">Novel Patterns</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCOPE AND AUTHORIZATION RECORD -->
+        <div class="section-box">
+            <h2 class="section-heading">Scope & Authorization Record</h2>
+            <table class="scope-table">
+                <tr>
+                    <th>Target Base URL:</th>
+                    <td><strong>https://juice-shop.herokuapp.com</strong></td>
+                </tr>
+                <tr>
+                    <th>Scan Mode:</th>
+                    <td>PASSIVE </td>
+                </tr>
+                <tr>
+                    <th>Authorization Status:</th>
+                    <td>&#9989; CONFIRMED - "I own this target or have written permission to test it"</td>
+                </tr>
+                <tr>
+                    <th>Authorization Timestamp:</th>
+                    <td>2026-10-17T15:39:29.340205+00:00</td>
+                </tr>
+                <tr>
+                    <th>Business Multiplier:</th>
+                    <td>2.0x</td>
+                </tr>
+                <tr>
+                    <th>Exposure Factor:</th>
+                    <td>1.0x</td>
+                </tr>
+                <tr>
+                    <th>In-Scope Allow-List Rules:</th>
+                    <td><div class="rule-pre">juice-shop.herokuapp.com
+/rest/*
+/api/*</div></td>
+                </tr>
+                <tr>
+                    <th>Out-of-Scope Rules:</th>
+                    <td><div class="rule-pre">/ftp/*</div></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- DETAILED FINDINGS -->
+        <div class="section-box">
+            <h2 class="section-heading">Confirmed & Needs-Review Vulnerability Findings (2)</h2>
+            
+            <div class="finding-card" id="BS-FIND-003">
+                <div class="finding-header">
+                    <div class="finding-title-row">
+                        <span class="finding-id">BS-FIND-003</span>
+                        <h3 class="finding-title">Strict-Transport-Security Header Not Set</h3>
+                        <span class="severity-badge" style="background-color: #ef4444;">Critical</span>
+                        
+                    </div>
+                    <div class="finding-meta-row">
+                        <span class="meta-tag">CVSS: 10.0 (CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N)</span>
+                        <span class="meta-tag">CWE-319</span>
+                        <span class="meta-tag">A02:2021-Cryptographic Failures</span>
+                        <span class="meta-tag mitre">MITRE ATT&CK: T1557</span>
+                    </div>
+                </div>
+
+                <div class="finding-body">
+                    <div class="section-label">Affected Target URL</div>
+                    <div class="url-box">https://juice-shop.herokuapp.com/assets/public/favicon_js.ico</div>
+
+                    <div class="section-label">Vulnerability Description</div>
+                    <p class="description-text">HTTP Strict Transport Security (HSTS) is a web security policy mechanism whereby a web server declares that complying user agents (such as a web browser) are to interact with it using only secure HTTPS connections (i.e. HTTP layered over TLS/SSL). HSTS is an IETF standards track protocol and is specified in RFC 6797.</p>
+
+                    <div class="ai-box">
+                        <div class="ai-box-header">
+                            <span class="ai-sparkle">&#10024;</span>
+                            <strong>Gemini AI Triage Verdict:</strong>
+                            <span class="verdict-tag verdict-confirmed">CONFIRMED</span>
+                        </div>
+                        <div class="ai-reasoning">
+                            <strong>Evidence-Quoted Reasoning:</strong> The request was made over HTTPS to "https://juice-shop.herokuapp.com/assets/public/favicon_js.ico", but the response headers ("X-Content-Type-Options: nosniff", "X-Frame-Options: SAMEORIGIN", etc.) completely lack the "Strict-Transport-Security" header. This leaves users susceptible to SSL-stripping and man-in-the-middle attacks on initial insecure connections.
+                        </div>
+                    </div>
+
+                    <div class="evidence-grid">
+                        <div class="evidence-col">
+                            <div class="evidence-title">HTTP Request Evidence</div>
+                            <pre class="code-block"><code>GET https://juice-shop.herokuapp.com/assets/public/favicon_js.ico HTTP/1.1
+host: juice-shop.herokuapp.com
+user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36
+pragma: no-cache
+cache-control: no-cache
+referer: https://juice-shop.herokuapp.com</code></pre>
+                        </div>
+                        <div class="evidence-col">
+                            <div class="evidence-title">HTTP Response Evidence</div>
+                            <pre class="code-block"><code>HTTP/1.1 200 OK
+Accept-Ranges: bytes
+Access-Control-Allow-Origin: *
+Cache-Control: public, max-age=0
+Content-Length: 15086
+Content-Type: image/x-icon
+Date: Sat, 17 Oct 2026 15:39:31 GMT
+Etag: W/"3aee-1a130982dd0"
+Feature-Policy: payment 'self'
+Last-Modified: Mon, 12 Oct 2026 14:50:42 GMT
+Nel: {"report_to":"heroku-nel","response_headers":["Via"],"max_age":3600,"success_fraction":0.01,"failure_fraction":0.1}
+Report-To: {"group":"heroku-nel","endpoints":[{"url":"https://nel.heroku.com/reports?s=Rw2Z0OkYq%2BvZquAffsFMvqi%2FvqRAs7RyF5tfYuaWjQ0%3D\u0026sid=812dcc77-0bd0-43b1-a5f1-b25750382959\u0026ts=1792251571"}],"max_age":3600}
+Reporting-Endpoints: heroku-nel="https://nel.heroku.com/reports?s=Rw2Z0OkYq%2BvZquAffsFMvqi%2FvqRAs7RyF5tfYuaWjQ0%3D&sid=812dcc77-0bd0-43b1-a5f1-b25750382959&ts=1792251571"
+Server: Heroku
+Vary: Accept-Encoding
+Via: 1.1 heroku-router
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+X-Recruiting: /#/jobs
+
+
+
+    00     ¨%  6          ¨  Þ%       h  6  (   0   `           $                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      Â#9Ï+O×G.YÚp0^Ü{1`Ýd1`Ý(1_Ý                                                                                    #:Ï#:Ï+#:Ï2#:Ï-"8Î#"7Î#:Ï#:Ï#:Ï                            #;Ï#:Ï"8Î8$<Ð)LÕÑ)KÕ÷&CÒÿ+P×ÿ0^Üÿ1_ÝÝ1`Ý[1`Ý                                                                            #:Ï.#:ÏÅ#:Ïë#:Ïï#:Ïì%@Ñä%?ÑØ#9ÏÉ#9Ï·#9Ï¤#:Ï#:Ï#:Ïw#:Ïo#:Ïm#:Ïq#9Ï|#9Ï#:ÏÅ&AÒï,RØÿ/[Ûÿ)JÕÿ*LÖÿ-UÙÿ,TØÿ0^Üÿ1`Ýò1`Ý1`Ý61`Ý                                                                    #:ÏM#:Ïù#:Ïÿ#:Ïÿ#:Ïÿ%AÑÿ'FÓÿ)KÕÿ'FÓÿ%@Ñÿ$=Ðÿ$<Ðÿ#;Ïÿ#;Ïÿ#;Ïÿ$<Ðÿ%?Ñÿ'FÓÿ+P×ÿ/\Ûÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1_Ýÿ1_Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýì1`Ý²1`Ýl0_Ý5,\Ü1`Ý                                                    #:Ï#:Ï#:Ïø#:Ïÿ#:Ïÿ#9Ïÿ%?Ñÿ/ZÛÿ1`Ýÿ0]Üÿ/ZÛÿ.WÚÿ-UÙÿ-TÙÿ-VÙÿ.XÚÿ0\Üÿ1_Ýÿ1aÝÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýþ4bÝï8fÞÎ1`Ý0_ÝM1`Ý
+                                                #:Ï#:Ï[#:ÏÆ#:Ïû#:Ïÿ#:Ïÿ'DÓÿ/[Ûÿ1aÝÿ1`Ýÿ1aÝÿ1aÝÿ1aÝÿ1aÝÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ/^Ýÿlçÿ¢·ðÿ;hßÿ3bÝ÷0_Ý2aÝ                                                    #:Ï#:Ïu#:Ïè#:Ïÿ#:Ïÿ&BÒÿ-VÙÿ1`Ýÿ1aÝÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1_Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ0_ÝÿGqáÿ[äÿvèÿ¤¹ðÿ<ißî.]Ü5                                                        #:Ï#:ÏM#:Ïä#:Ïÿ#:Ïÿ$=Ðÿ(IÔÿ-TÙÿ.XÚÿ/ZÛÿ-UÙÿ*MÖÿ)JÕÿ)IÕÿ(IÔÿ(HÕÿ(HÕÿ*LÖÿ.Y×ÿ3lØÿ3hÛÿ1aÝÿ1_Ýÿ1_Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ0_Ýÿ,\Üÿbåÿéîûÿaåú(YÛK                                                                #:Ï[#:Ïî#:Ïÿ#:Ïÿ#9Ïÿ#;Ïÿ$>Ðÿ+P×ÿ,QØÿ%?Ñÿ#9Ïÿ#9Ïÿ#:Ïÿ&FÎÿ,\Îÿ4zÍÿ;Ìÿ@¦Ðÿ@¡Òÿ;Òÿ7}Õÿ4nÙÿ2dÜÿ1_Ýÿ1_Ýÿ1_Ýÿ1`Ýÿ0_ÝÿGqáÿ²ÄòÿNwâí)ZÜ3                                                                #:Ï#:Ïg#:Ïï#:Ïÿ#:Ïÿ#:Ïÿ#:Ïÿ$<Ðÿ$>Ñÿ&CÒÿ#:Ïÿ(NÎÿ6Íÿ=Ìÿ@§ÌÿA«ÌÿAªËÿFºÞÿLÐóÿIÆéÿF»ÞÿB¬Öÿ>Òÿ:Óÿ6v×ÿ3iÛÿ1aÝÿ1`Ýÿ3aÝÿ:gÞÿ1`Ý¡1`Ý                                                                    #:Ï#:ÏV#:ÏØ#:Ïÿ#:Ïÿ#:Ïÿ#9Ïÿ*SÎÿ5{Íÿ(JÑÿ&GÎÿ6ÆÿAªËÿA©ÌÿA©ÌÿA¨ËÿF¼ßÿNÙþÿNÙþÿNØýÿMÔùÿKÎñÿHÄçÿE·Üÿ@¥Óÿ7}Öÿ1_Ýÿ1`Ý÷0_Ý¥1`Ý                                                                                #:Ï&#:Ï#:ÏÖ#:Ïø#8Ïÿ1oÎÿ@¥Ìÿ.^Óÿ$;Òÿ%L¹ÿ?¢ÇÿA©ÌÿA©Ìÿ@¨ËÿF»ßÿNØýÿMØýÿNØýÿNØýÿNÙþÿNÙþÿNØýÿIÅçÿ;Òð1`Ý­1`ÝT1`Ý                                                                                        #:Ï#:Ï#:ÏI"8Ïy7ÍÒAªÌÿ6Éÿ'O¿ÿ-o¶ÿ=¦Êÿ>¨ËÿDªÍÿJ¬ÎÿF»ßÿQÙýÿVÚýÿNØýÿK×ýÿL×ýÿMØýÿNÙþÿJÈìÿA§Í³6u×	                                                                                                                A©ÌA©ÌÿA¨ËÿG¤Éÿ\´ÒÿyÃÛÿÒåÿÃäïÿ°ÛéÿI¼àÿiÞýÿÍôþÿºðþÿèþÿyáýÿaÜýÿRÚþÿJËðÿB«Î½@§É                                                                                                            A©ÌA©Ì²?¨ËÿyÂÛÿÓìóÿìöúÿüýþÿÿÿÿÿÿÿÿÿËçðÿI¼ßÿnßýÿòüÿÿÿÿÿÿÿÿÿÿ÷ýÿÿæúÿÿÄóÿÿ`Óóÿ@­ÐÍ@¦É                                                                                                            A©ÌA©ÌÃ?¨Ëÿ¡ÔæÿÿÿÿÿøüýÿäóøÿäóøÿÿÿÿÿËçðÿI¼ßÿbÜýÿÇóþÿìûÿÿüþÿÿÿÿÿÿÿÿÿÿ÷þÿÿtÚöÿ@®ÒÚ@¦É                                                                                                            A©ÌA©ÌÒ@©ÌÿzÃÛÿÍáÿo¾ØÿS±ÑÿÎâÿÿÿÿÿÇåïÿI»ÞÿNØýÿSÙýÿgÝýÿäþÿ®íþÿìûÿÿüÿÿÿßùÿ@±Õæ@¦É&                                                                                                            A©ÌA©ÌßA©Ìÿ@©Ìÿ>¨Ëÿ>¨Ëÿ<§ËÿÍáÿÿÿÿÿÂâîÿHºÞÿQØýÿ[ÛýÿOØýÿI×ýÿLØýÿÈóþÿÿÿÿÿãûÿA³×ð@¦É4                                                                                                            A©Ì+A©ÌêA©ÌÿA©ÌÿA©ÌÿA©Ìÿ>¨ËÿÎâÿÿÿÿÿ¾áíÿF¹ÝÿcÜýÿÑõÿÿÈóþÿ¥ëþÿäþÿÔöÿÿÿÿÿÿçýÿB¶Û÷@¦ÉD                                                                                                            A©Ì:A©ÌóA©ÌÿA©ÌÿA©ÌÿA©Ìÿ>¨ËÿÏâÿÿÿÿÿ¼àìÿE¹ÝÿdÜýÿêûÿÿÿÿÿÿÿÿÿÿûþÿÿüþÿÿÿÿÿÿ¤ëþÿCºÞý@§ÉU                                                                                                            A©ÌKA©ÌúA©ÌÿA©ÌÿA©ÌÿA©Ìÿ>¨ËÿÏãÿÿÿÿÿºßìÿE¸ÜÿcÜýÿéúÿÿÿÿÿÿöýÿÿüþÿÿÿÿÿÿÿÿÿÿ±îÿÿE¾âÿ@§Êh                                                                                                            A©Ì]A©ÌþA©ÌÿA©ÌÿA©ÌÿA©Ìÿ>¨ËÿÐãÿÿÿÿÿ¸ÞëÿD¸ÜÿbÜýÿéúÿÿ÷ýÿÿæþÿäþÿêþÿ¼ðþÿêÿÿHÂæÿA¨Ë|                                                                                                            A©ÌpA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©Ìÿ>¨ËÿÑäÿÿÿÿÿ¶ÝëÿD·ÛÿaÛýÿèúÿÿöýÿÿpàýÿI×ýÿK×ýÿNØýÿQÙþÿIÅéÿA©Ì                                                                                                            A©ÌA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©Ìÿ>¨ËÿÒäÿÿÿÿÿµÝêÿC·Ûÿ`Ûüÿæúÿÿ÷ýÿÿràýÿK×ýÿNØýÿNØýÿNÙþÿJÉíÿAªÍ£=¾                                                                                                        A©ÌA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©Ìÿ>¨ËÿÓåÿÿÿÿÿ³ÜêÿC·Ûÿ_ÛüÿåùÿÿøþÿÿãþÿSÙýÿOØýÿLØýÿLØþÿJÌñÿB¬Ïµ@¤Æ                                                                                                    A©ÌA©Ì«A©ÌÿA©ÌÿA©ÌÿA©ÌÿA©Ìÿ>¨Ëÿ¡Ôæÿÿÿÿÿ±ÛéÿC¶Úÿ^ÛüÿãùÿÿÿÿÿÿèúÿÿÔõÿÿÀñþÿ«íþÿçþÿSÑôÿB­ÑÅ@¤Ç                                                                                                    A©ÌA©Ì¼A©ÌÿA©ÌÿA©ÌÿA©ÌÿA©Ìÿ?¨Ëÿ¨×èÿÿÿÿÿ¯ÚéÿC¶Úÿ]Úüÿâùÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿîüÿÿf×÷ÿA¯ÓÔ@¥Ç                                                                                                    A©ÌA©ÌÌA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©Ìÿ@¨ÌÿÒäÿÜïöÿÍáÿC¶ÚÿXÙüÿ¾ñþÿßøÿÿæúÿÿîûÿÿôýÿÿúþÿÿòüÿÿoÜùÿA²Öá@¥È                                                                                                     A©ÌA©ÌÚA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿJ­ÎÿL®ÏÿEªÌÿD¶ÚÿN×üÿTÙýÿZÛýÿaÜýÿhÞýÿqàýÿ{âþÿäþÿ\ÙûÿCµØë@¥È-                                                                                                    A©Ì&A©ÌæA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©Ìÿ@©Ìÿ@©ÌÿA¨ËÿE¶ÙÿN×üÿNØýÿMØýÿMØýÿLØýÿLØýÿK×ýÿK×ýÿM×üÿE¸Üô@¦É<                                                                                                    A©Ì4A©ÌðA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿA¨ËÿDµÙÿMÖúÿNØýÿNØýÿNØýÿNÙþÿNÙþÿNÙþÿNÙþÿNÙþÿF¼àú@¦ÉM                                                                                                    A©ÌDA©Ì÷A©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿB­ÑÿE¹ÝÿF»ÞÿF¼àÿG¾âÿGÀäÿHÂæÿHÃèÿIÅêÿJÈìÿE·Úÿ@§Ê`                                                                                                    @¥ÊOA§ËúA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿAªÍÿHÂæÿKÍòÿJËðÿJÊîÿJÈíÿIÇëÿIÄèÿHÃçÿHÁåÿG¿ãÿG½áýE¸Û`                                                                                                    ;Â=Å»@¥ÊÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿA¨ËÿE¹ÝÿNÖûÿNÙþÿNÙþÿOÚÿÿLÑøÿLÒùÿOÚþÿNÙþÿNÙþÿNØþÿNØý´NØý                                                                                                        :¾.<ÃÕ@¤ÊÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ËÿC°ÓÿLÐõÿNÙþÿNØýÿNØýÿ=£Õÿ"Pÿ&_ ÿHÅîÿNÙþÿNØýÿNØý×NØý.                                                                                                                :¾I;Âé?¢ÉÿA©ÌÿA©ÌÿA©ÌÿAªÎÿIÇëÿNÙþÿNØýÿOÚÿÿA¯Þÿ3ÿuÿ)ÿ0qÑÿMÓüÿNØýïNØýR                                                                                                                    :¾:¿i;Áö?¡ÈÿA©ÌÿA©ÌÿF»ßÿN×üÿNØýÿNØýÿOÛÿÿ5Ãÿ vÿ1¯ÿ"7Îÿ.bÛÿLÑûüNÙý~NØý                                                                                                                        :¿:¿;Àý>ÇÿC±ÕÿLÒ÷ÿNØýÿNØýÿNØýÿNÙþÿHÇïÿ)`¶ÿ"9Ìÿ*T×ÿC°ñÿOÚþ©NØý                                                                                                                                :¿:¾¬<ÃÿIÄëÿNÙþÿNØýÿNØýÿNØýÿNØýÿNÚþÿIÇ÷ÿ?¢íÿHÂ÷ÿNÙýÔNØý&                                                                                                                                        8¹(B«ØÞMÖûÿNØýÿNØýÿNØýÿNØýÿNØýÿNØýÿNÙýÿOÛþÿNÙýÿNØý                                                                                                                                            4t«E¶áÉNØýÿNØýÿNØýûNØýòNØýåNØýÓNØý¾NØý¥NØýNØýoNØý/                                                                                                                                            4s«D±ÝyN×üNØýkNØýPNØý9NØý$NØýNØý	NØý                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ÿÿÿÿÿÿ  ÿÿÿÿÿÿ  ÿÿÿÿÿÿ  ÿÿÿÿÿÿ  ÿÿÿÿÿ  ü | ?ÿ  ü   ÿ  ü    ÿ  ÿ    ?  ÿÀ   ?  ÿà   ?  ÿð   ?  ÿø   ?  ÿü     ÿþ  ÿ  ÿÿà ÿ  ÿÿà ÿ  ÿÿà ÿ  ÿÿà ÿ  ÿÿà ÿ  ÿÿà ÿ  ÿÿà ÿ  ÿÿà ÿ  ÿÿà ÿ  ÿÿà ÿ  ÿÿà ÿ  ÿÿÀ ÿ  ÿÿÀ ÿ  ÿÿÀ ÿ  ÿÿÀ ÿ  ÿÿÀ ÿ  ÿÿÀ ÿ  ÿÿÀ ÿ  ÿÿÀ ÿ  ÿÿÀ ÿ  ÿÿÀ ÿ  ÿÿÀ ÿ  ÿÿà ÿ  ÿÿð ÿ  ÿÿø ÿ  ÿÿø ÿ  ÿÿü ÿ  ÿÿþ ÿ  ÿÿþ ÿ  ÿÿÿÿÿ  ÿÿÿÿÿÿ  ÿÿÿÿÿÿ  ÿÿÿÿÿÿ  (       @                                                                                                                                                                                                                                                                                                             #:Ï#:Ï"7Íµ                                 1Ì'DÓD*MÖ-TÙ 1`Ý1`Ý*                                                    #:Ï#:Ï#:Ï¶$<Ð°%@Ñ#:Ï#9Ïv"8Îd"8ÎW"8ÎP"8ÎP"8Î]#;Ï'FÓÃ-TÙô)KÕÿ+P×ÿ/ZÛÿ1`ÝÕ1`Ý^1`Ý                                            #:Ï/#:Ïæ#:Ïÿ#;Ïÿ&CÒÿ+N×ÿ)JÕÿ'EÓÿ&CÒý&BÒû'DÓü)JÕþ,RØÿ0\Üÿ1`Ýÿ1_Ýÿ1_Ýÿ1_Ýÿ1`Ýÿ1`Ýù1`ÝÍ1`Ý-]ÜT-]Ü#*ZÜ                            #:Ï#:ÏJ#:Ï¿#:Ïú#;Ïÿ+P×ÿ1`Ýÿ1`Ýÿ0^Üÿ0^Üÿ1_Ýÿ1`Ýÿ1aÝÿ1aÝÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ1`Ýÿ:gÞÿpçûAlàâ3aÝ.]Ü                                #:Ï#:Ïp#:Ïë$;Ðÿ)KÕÿ/ZÛÿ1_Ýÿ0_Üÿ/\Ûÿ/ZÛÿ/YÛÿ.YÛÿ/YÛÿ0^Üÿ1`Ýÿ1_Ýÿ1_Ýÿ1`Ýÿ1`Ýÿ5cÞÿNvâÿ¤ìÿpçì$VÛ0                                    #:Ï#:Ïc#:Ïò#:Ïÿ%>Ñÿ'EÓÿ,QØÿ'FÔÿ$=Ðÿ%@Ðÿ(MÐÿ/gÏÿ8Ðÿ<Öÿ8×ÿ4nÙÿ2cÛÿ1_Ýÿ1_Ýÿ,\Üÿuèÿêì"UÛ0                                        #:Ï#:Ïm#:Ïî#:Ïÿ#:Ïÿ$>Ðÿ(MÐÿ%BÏÿ2qÌÿ>ÌÿA¨ÌÿB®ÐÿJËîÿJÉíÿF¹ãÿ@¤Ûÿ;×ÿ6vØÿ1bÜÿ6dÞý9fÞ(YÜ                                            #:Ï#:ÏH#:Ïµ#9Ïí&EÏý9Íÿ+TÑÿ)UÃÿ>£Èÿ?¨ËÿA¬ÐÿKÐõÿLÙþÿMØýÿM×úÿLÑôÿC°Üý4mÙÎ0^Ýp,\Ü                                                        #:Ï
+!4Ï0-_Ît?£Ìó4Çÿ3yÀÿM¬Îÿd¹Õÿ]¹×ÿTÒôÿuáþÿbÜýÿSÙýÿMÙþÿGÀåó>ÌA                                                                        AªÌ4A©Ìð{ÄÛÿ¾âíÿÜïöÿóúüÿ×éÿfÕôÿëûÿÿêúÿÿÎôþÿ¦ìÿÿVÇéø>§ÊF                                                                        A©ÌEBªÌø¯ÛéÿØîõÿ½áíÿóùüÿ¢ØéÿVÑóÿ©íÿÿÖöÿÿóüÿÿôýÿÿlÏìý;¨ÍX                                                                        A©ÌWB©ÌýQ°ÐÿJ­ÎÿR±Ñÿãò÷ÿÖèÿKÎóÿYÛþÿWÚýÿäþÿñýÿÿwÔðÿ<ªÏk                                                                        A©ÌjA©Ìÿ@©Ìÿ?¨ÌÿS±ÑÿäóøÿÔçÿ\ÒóÿÏõÿÿÄòþÿ¹ðþÿ÷þÿÿÚóÿ<­Ñ                                                                        A©Ì}A©ÌÿA©Ìÿ@¨ÌÿT²ÑÿåóøÿÓæÿ^Òóÿêûÿÿúþÿÿúþÿÿÿÿÿÿßöÿ>¯Ô                                                                        A©ÌA©ÌÿA©Ìÿ@¨ÌÿU²ÑÿæôøÿÒæÿ\Ñòÿêûÿÿ­íþÿyâýÿèþÿrÛøÿB³×¥,\|                                                                A©ÌA©Ì¤A©ÌÿA©Ìÿ@¨ÌÿV²ÒÿçôøÿÑåÿ[ÑòÿéûÿÿéþÿFÖýÿI×ýÿKÔùÿE¶Ú·:³                                                                A©ÌA©Ì¶A©ÌÿA©Ìÿ@¨ÌÿW³ÒÿèõùÿÐäÿZÐòÿçúÿÿ½ðþÿváýÿhÞýÿWØûÿE¹ÝÈ=¾                                                                A©ÌA©ÌÇA©ÌÿA©Ìÿ?¨Ìÿ[µÓÿëöúÿÏãÿYÐñÿåúÿÿÿÿÿÿúþÿÿòüÿÿ²íýÿH¼àÖ= Â                                                                A©ÌA©ÌÖA©ÌÿA©Ìÿ@©ÌÿR±Ñÿ£Õæÿj¾ÙÿRÎñÿ¡ëÿÿ¼ðþÿÇóþÿÕöÿÿ³îþÿKÀãã>£Æ"                                                                A©Ì!A©ÌâA©ÌÿA©ÌÿA©ÌÿA©Ìÿ@¨ÌÿA«ÎÿKÍòÿMÙþÿNØýÿQÙýÿTÚýÿVÚþÿIÃçí@¥È/                                                                A©Ì/A©ÌíA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿAªÍÿIÄéÿLÏôÿLÐõÿLÑöÿLÓ÷ÿMÔùÿHÃçõA§Ê?                                                                @¦Ê:A¨ËòA©ÌÿA©ÌÿA©ÌÿA©ÌÿA©ÌÿC¯ÒÿHÃçÿIÅéÿIÆéÿIÅèÿHÂæÿHÂæÿG¾âöD´×E                                                                <Ã>Æ­@¦ËÿA©ÌÿA©ÌÿA©ÌÿAªÍÿIÆêÿNÙþÿN×ýÿBµâÿE»æÿNÙýÿN×üÿNÖû«LÒ÷                                                                    :¿$=ÄÊ@¥ÊÿA©ÌÿA¨ËÿFºÞÿN×üÿOÚþÿ:Îÿ1ÿ#KªÿGÁôÿNÚþÐNØý&                                                                            :¾=<Âá@£ÉÿC±ÔÿLÑöÿNØþÿNÙþÿ0}¹ÿ+¤ÿ'JÒÿE·óêPÞÿH                                                                                    :¾[<ÄñIÅëÿNÙþÿNØýÿNÙýÿJÊôÿ9äÿB­ñüN×ýuUòÿ                                                                                    'DC­Ú¢MÔúÿNØýÿNØýÿNØýüNÙýóOÚþèOÚþÃNÙý                                                                                             EµàdMÕû¨NØýNØýnNØýSNØý;NØý&NØýNØý                                                                                            BªØKÌó                                                                                                                                                                                            ÿÿÿÿÿÿÿÿÿÿÇÿð~ÿð  ø  þ  ÿ  ÿ ÿÀ ?ÿø ÿø ÿø ÿø ÿø ÿø ?ÿð ?ÿð ?ÿð ?ÿð ?ÿð ?ÿð ?ÿð ?ÿð ?ÿð ?ÿø ÿü ÿÿþÿÿþÿÿÿ?ÿÿÿÿÿÿÿÿÿ(                                                                    #;Í-VÙ	1aÝ                        #:Ï#:ÏW$>Ð\%>ÑI#9Ï:#9Ï4%?ÑC*NÖ,RØ¼0]Ü1aÝ,-YÙ                #:Ï#:Ïª$>Ðù+N×ú,SØó,RØñ.WÚ÷0]Üÿ0]Üÿ1^Ýþ1_ÝäFpá¯Nwâc0_Ý            #:Ï#:Ïu&AÒô+O×ÿ,SØÿ+PÖÿ/aÕÿ6xÙÿ5qÛÿ1dÛÿ?jßÿkçâIrá#                #:Ï#9Ïk#9ÏÙ*TÏù*^Ëÿ:ÉÿF»àÿHÇòÿA°èÿ8Üë>hßCnà                    #:Ï/Ï>Í¦l«ÖÿÏãÿwÑìÿëÿÿåüÿQ¿ä                                  I­Î~ÆÜÿºßìÿÙñÿçþÿÊóþÿwÎè¨ Z                            A©ÌA©Ì°<§ËÿÎâÿÚðÿÁñþÿÕöþÿÒëº |¯                            A©Ì
+A©ÌÁ?¨ËÿÏâÿÚïÿ·ïþÿuáþÿXÌíÊ2Â                            A©ÌA©ÌÑ?¨ËÿÐãÿØîÿÎôþÿ¯îþÿoÓðØ1¥Ì                            A©ÌA©ÌÞ@©Ìÿ^µÓÿ[ÅäÿãýÿèþÿmÕòä9¬Ò#                            @§Ë'A¨ÌçA©Ìÿ?¨ËÿEºÞÿIÍòÿHÍòÿHÈìëE¶Ù,                            =Å
+?È@¦ËÿC°ÔÿKÏôÿ9Íÿ>£ÞÿMÖú JÉí
+                                :¾>È¾IÆëÿM×ûÿ6Òÿ:ãËQãÿ                                         D²ÞIMÓù½NÙý¦N×þNØþA                                            G¾æMÔùNÙþ                        ÿÿ  ÿ  À  ð  ø  ü  ü  ü  ü  ü  ü  ü  ü  þ  ÿ  ÿÿ  </code></pre>
+                        </div>
+                    </div>
+
+                    <div class="section-label">Actionable Remediation</div>
+                    <div class="remediation-box">
+                        <pre class="remediation-text">Configure the web server or reverse proxy to return the 'Strict-Transport-Security' response header (e.g., 'Strict-Transport-Security: max-age=31536000; includeSubDomains') on all HTTPS responses.</pre>
+                    </div>
+
+                    <div class="section-label">References & Standards</div><ul class="references-list"><li><a href="https://cwe.mitre.org/data/definitions/319.html" target="_blank" rel="noopener">https://cwe.mitre.org/data/definitions/319.html</a></li><li><a href="https://owasp.org/Top10/A02_2021-Cryptographic_Failures/" target="_blank" rel="noopener">https://owasp.org/Top10/A02_2021-Cryptographic_Failures/</a></li></ul>
+                </div>
+            </div>
+            
+            <div class="finding-card" id="BS-FIND-004">
+                <div class="finding-header">
+                    <div class="finding-title-row">
+                        <span class="finding-id">BS-FIND-004</span>
+                        <h3 class="finding-title">Content Security Policy (CSP) Header Not Set</h3>
+                        <span class="severity-badge" style="background-color: #ef4444;">Critical</span>
+                        
+                    </div>
+                    <div class="finding-meta-row">
+                        <span class="meta-tag">CVSS: 10.0 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N)</span>
+                        <span class="meta-tag">CWE-693</span>
+                        <span class="meta-tag">A05:2021-Security Misconfiguration</span>
+                        <span class="meta-tag mitre">MITRE ATT&CK: T1562</span>
+                    </div>
+                </div>
+
+                <div class="finding-body">
+                    <div class="section-label">Affected Target URL</div>
+                    <div class="url-box">https://juice-shop.herokuapp.com</div>
+
+                    <div class="section-label">Vulnerability Description</div>
+                    <p class="description-text">Content Security Policy (CSP) is an added layer of security that helps to detect and mitigate certain types of attacks, including Cross Site Scripting (XSS) and data injection attacks. These attacks are used for everything from data theft to site defacement or distribution of malware. CSP provides a set of standard HTTP headers that allow website owners to declare approved sources of content that browsers should be allowed to load on that page — covered types are JavaScript, CSS, HTML frames, fonts, images and embeddable objects such as Java applets, ActiveX, audio and video files.</p>
+
+                    <div class="ai-box">
+                        <div class="ai-box-header">
+                            <span class="ai-sparkle">&#10024;</span>
+                            <strong>Gemini AI Triage Verdict:</strong>
+                            <span class="verdict-tag verdict-confirmed">CONFIRMED</span>
+                        </div>
+                        <div class="ai-reasoning">
+                            <strong>Evidence-Quoted Reasoning:</strong> The response returns HTML content as indicated by 'Content-Type: text/html; charset=UTF-8', but lacks both 'Content-Security-Policy' and 'Content-Security-Policy-Report-Only' headers. While other security headers like 'X-Content-Type-Options: nosniff' and 'X-Frame-Options: SAMEORIGIN' are present, the absence of a CSP leaves the application without defense-in-depth protection against cross-site scripting (XSS) and data injection attacks.
+                        </div>
+                    </div>
+
+                    <div class="evidence-grid">
+                        <div class="evidence-col">
+                            <div class="evidence-title">HTTP Request Evidence</div>
+                            <pre class="code-block"><code>GET https://juice-shop.herokuapp.com HTTP/1.1
+host: juice-shop.herokuapp.com
+user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36
+pragma: no-cache
+cache-control: no-cache</code></pre>
+                        </div>
+                        <div class="evidence-col">
+                            <div class="evidence-title">HTTP Response Evidence</div>
+                            <pre class="code-block"><code>HTTP/1.1 200 OK
+Accept-Ranges: bytes
+Access-Control-Allow-Origin: *
+Cache-Control: public, max-age=0
+Content-Length: 9984
+Content-Type: text/html; charset=UTF-8
+Date: Sat, 17 Oct 2026 15:39:31 GMT
+Etag: W/"2700-1a14a8350ec"
+Feature-Policy: payment 'self'
+Last-Modified: Sat, 17 Oct 2026 15:38:02 GMT
+Nel: {"report_to":"heroku-nel","response_headers":["Via"],"max_age":3600,"success_fraction":0.01,"failure_fraction":0.1}
+Report-To: {"group":"heroku-nel","endpoints":[{"url":"https://nel.heroku.com/reports?s=Rw2Z0OkYq%2BvZquAffsFMvqi%2FvqRAs7RyF5tfYuaWjQ0%3D\u0026sid=812dcc77-0bd0-43b1-a5f1-b25750382959\u0026ts=1792251571"}],"max_age":3600}
+Reporting-Endpoints: heroku-nel="https://nel.heroku.com/reports?s=Rw2Z0OkYq%2BvZquAffsFMvqi%2FvqRAs7RyF5tfYuaWjQ0%3D&sid=812dcc77-0bd0-43b1-a5f1-b25750382959&ts=1792251571"
+Server: Heroku
+Vary: Accept-Encoding
+Via: 1.1 heroku-router
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+X-Recruiting: /#/jobs
+
+
+
+<!--
+  ~ Copyright (c) 2014-2026 Bjoern Kimminich & the OWASP Juice Shop contributors.
+  ~ SPDX-License-Identifier: MIT
+  -->
+
+<!doctype html>
+<html lang="en" data-beasties-container>
+<head>
+  <meta charset="utf-8">
+  <title>OWASP Juice Shop</title>
+  <meta name="description" content="Probably the most modern and sophisticated insecure web application">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <style>@font-face{font-family:'VT323';font-style:normal;font-weight:400;font-display:swap;src:url(https://fonts.gstatic.com/s/vt323/v18/pxiKyp0ihIEF2isQFJXGdg.woff2) format('woff2');unicode-range:U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;}@font-face{font-family:'VT323';font-style:normal;font-weight:400;font-display:swap;src:url(https://fonts.gstatic.com/s/vt323/v18/pxiKyp0ihIEF2isRFJXGdg.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;}@font-face{font-family:'VT323';font-style:normal;font-weight:400;font-display:swap;src:url(https://fonts.gstatic.com/s/vt323/v18/pxiKyp0ihIEF2isfFJU.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}</style>
+  <link id="favicon" rel="icon" type="image/x-icon" href="assets/public/favicon_js.ico">
+  <script>
+    window.addEventListener("load", function(){
+      window.cookieconsent.initialise({
+        "palette": {
+          "popup": { "background": "var(--theme-primary)", "text": "var(--theme-text)" },
+          "button": { "background": "var(--theme-accent)", "text": "var(--theme-text)" }
+        },
+        "theme": "classic",
+        "position": "bottom-right",
+        "content": { "message": "This website uses fruit cookies to ensure you get the juiciest tracking experience.", "dismiss": "Me want it!", "link": "But me wait!", "href": "https://www.youtube.com/watch?v=9PnbKL3wuH4" }
+      })});
+  </script>
+<style>.bluegrey-lightgreen-theme{--mat-sys-background:#121316;--mat-sys-error:#ffb4ab;--mat-sys-error-container:#93000a;--mat-sys-inverse-on-surface:#2f3033;--mat-sys-inverse-primary:#005cbb;--mat-sys-inverse-surface:#e3e2e6;--mat-sys-on-background:#e3e2e6;--mat-sys-on-error:#690005;--mat-sys-on-error-container:#ffdad6;--mat-sys-on-primary:#002f65;--mat-sys-on-primary-container:#d7e3ff;--mat-sys-on-primary-fixed:#001b3f;--mat-sys-on-primary-fixed-variant:#00458f;--mat-sys-on-secondary:#283041;--mat-sys-on-secondary-container:#dae2f9;--mat-sys-on-secondary-fixed:#131c2b;--mat-sys-on-secondary-fixed-variant:#3e4759;--mat-sys-on-surface:#e3e2e6;--mat-sys-on-surface-variant:#e0e2ec;--mat-sys-on-tertiary:#173800;--mat-sys-on-tertiary-container:#82ff10;--mat-sys-on-tertiary-fixed:#0b2000;--mat-sys-on-tertiary-fixed-variant:#245100;--mat-sys-outline:#8e9099;--mat-sys-outline-variant:#44474e;--mat-sys-primary:#abc7ff;--mat-sys-primary-container:#00458f;--mat-sys-primary-fixed:#d7e3ff;--mat-sys-primary-fixed-dim:#abc7ff;--mat-sys-scrim:#000000;--mat-sys-secondary:#bec6dc;--mat-sys-secondary-container:#3e4759;--mat-sys-secondary-fixed:#dae2f9;--mat-sys-secondary-fixed-dim:#bec6dc;--mat-sys-shadow:#000000;--mat-sys-surface:#121316;--mat-sys-surface-bright:#38393c;--mat-sys-surface-container:#1f2022;--mat-sys-surface-container-high:#292a2c;--mat-sys-surface-container-highest:#343537;--mat-sys-surface-container-low:#1a1b1f;--mat-sys-surface-container-lowest:#0d0e11;--mat-sys-surface-dim:#121316;--mat-sys-surface-tint:#abc7ff;--mat-sys-surface-variant:#44474e;--mat-sys-tertiary:#70e000;--mat-sys-tertiary-container:#245100;--mat-sys-tertiary-fixed:#82ff10;--mat-sys-tertiary-fixed-dim:#70e000;--mat-sys-neutral-variant20:#2d3038;--mat-sys-neutral10:#1a1b1f;--mat-sys-level0:0px 0px 0px 0px rgba(0, 0, 0, .2), 0px 0px 0px 0px rgba(0, 0, 0, .14), 0px 0px 0px 0px rgba(0, 0, 0, .12);--mat-sys-level1:0px 2px 1px -1px rgba(0, 0, 0, .2), 0px 1px 1px 0px rgba(0, 0, 0, .14), 0px 1px 3px 0px rgba(0, 0, 0, .12);--mat-sys-level2:0px 3px 3px -2px rgba(0, 0, 0, .2), 0px 3px 4px 0px rgba(0, 0, 0, .14), 0px 1px 8px 0px rgba(0, 0, 0, .12);--mat-sys-level3:0px 3px 5px -1px rgba(0, 0, 0, .2), 0px 6px 10px 0px rgba(0, 0, 0, .14), 0px 1px 18px 0px rgba(0, 0, 0, .12);--mat-sys-level4:0px 5px 5px -3px rgba(0, 0, 0, .2), 0px 8px 10px 1px rgba(0, 0, 0, .14), 0px 3px 14px 2px rgba(0, 0, 0, .12);--mat-sys-level5:0px 7px 8px -4px rgba(0, 0, 0, .2), 0px 12px 17px 2px rgba(0, 0, 0, .14), 0px 5px 22px 4px rgba(0, 0, 0, .12);--mat-sys-corner-extra-large:28px;--mat-sys-corner-extra-large-top:28px 28px 0 0;--mat-sys-corner-extra-small:4px;--mat-sys-corner-extra-small-top:4px 4px 0 0;--mat-sys-corner-full:9999px;--mat-sys-corner-large:16px;--mat-sys-corner-large-end:0 16px 16px 0;--mat-sys-corner-large-start:16px 0 0 16px;--mat-sys-corner-large-top:16px 16px 0 0;--mat-sys-corner-medium:12px;--mat-sys-corner-none:0;--mat-sys-corner-small:8px;--mat-sys-dragged-state-layer-opacity:.16;--mat-sys-focus-state-layer-opacity:.12;--mat-sys-hover-state-layer-opacity:.08;--mat-sys-pressed-state-layer-opacity:.12;color:var(--mat-sys-on-surface);background-color:var(--mat-sys-surface)}html{font-family:var(--mat-sys-body-medium-font, Roboto, "Helvetica Neue", sans-serif)}.bluegrey-lightgreen-theme{--theme-primary:#438fff;--theme-primary-lighter:rgb(38.2745098039%, 63.2273675428%, 100%);--theme-primary-light:rgb(46.2745098039%, 67.9933249896%, 100%);--theme-primary-darker:rgb(14.2745098039%, 48.9294952023%, 100%);--theme-primary-dark:rgb(6.2745098039%, 44.1635377555%, 100%);--theme-primary-fade-10:#438fff;--theme-primary-fade-20:#438fff;--theme-primary-fade-30:#438fff;--theme-primary-fade-40:#438fff;--theme-primary-fade-50:#438fff;--theme-accent:#50a400;--theme-accent-lighter:rgb(37.2262075562%, 76.3137254902%, 0%);--theme-accent-light:rgb(41.1286465806%, 84.3137254902%, 0%);--theme-accent-darker:rgb(25.518890483%, 52.3137254902%, 0%);--theme-accent-dark:rgb(21.6164514586%, 44.3137254902%, 0%);--theme-accent-fade-10:#50a400;--theme-accent-fade-20:#50a400;--theme-accent-fade-30:#50a400;--theme-accent-fade-40:#50a400;--theme-accent-fade-50:#50a400;--theme-warn:#ffb4ab;--theme-warn-lighter:rgb(100%, 81.3025210084%, 79.0588235294%);--theme-warn-light:rgb(100%, 88.4453781513%, 87.0588235294%);--theme-warn-darker:rgb(100%, 59.8739495798%, 55.0588235294%);--theme-warn-dark:rgb(100%, 52.731092437%, 47.0588235294%);--theme-warn-fade-10:#ffb4ab;--theme-warn-fade-20:#ffb4ab;--theme-warn-fade-30:#ffb4ab;--theme-warn-fade-40:#ffb4ab;--theme-warn-fade-50:#ffb4ab;--theme-text:#e3e2e6;--theme-text-lighter:rgb(95.2418300654%, 95.0718954248%, 95.7516339869%);--theme-text-light:rgb(99.3899782135%, 99.3681917211%, 99.4553376906%);--theme-text-darker:rgb(78.6492374728%, 77.8867102397%, 80.9368191721%);--theme-text-dark:rgb(63.0936819172%, 61.7755991285%, 67.0479302832%);--theme-text-fade-10:#e3e2e6;--theme-text-fade-20:#e3e2e6;--theme-text-fade-30:#e3e2e6;--theme-text-fade-40:#e3e2e6;--theme-text-fade-50:#e3e2e6;--theme-text-invert-15:rgb(77.3137254902%, 77.0392156863%, 78.137254902%);--theme-text-invert-30:rgb(65.6078431373%, 65.4509803922%, 66.0784313725%);--theme-background:#1f2022;--theme-background-lighter:rgb(17.8799396682%, 18.4567119155%, 19.6102564103%);--theme-background-light:rgb(21.6953242836%, 22.395173454%, 23.7948717949%);--theme-background-darker:rgb(6.433785822%, 6.6413273002%, 7.0564102564%);--theme-background-dark:rgb(2.6184012066%, 2.7028657617%, 2.8717948718%);--theme-background-darkest:hsl(220, 4.6153846154%, -1.2549019608%);--theme-thumbnail-border:1px solid #abc7ff;--mdc-filled-text-field-container-color:#0000;--mdc-filled-text-field-disabled-container-color:#0000;--theme-background:#3e3e3e;--theme-background-lighter:#4a4a4a;--theme-background-light:#5a5a5a;--theme-background-darker:#333638;--theme-background-dark:#303030;--theme-background-darkest:#2b2b2b;--theme-text:#e8ecef;--theme-text-lighter:#f2f5f7;--theme-text-light:#fff;--theme-text-darker:#b8c0c7;--theme-text-dark:#7f8a93;--mat-sys-surface:#333638;--mat-sys-on-surface:#e8ecef;--mat-sys-surface-container:#3e3e3e;--mat-sys-surface-container-high:#404244;--mat-sys-on-surface-variant:#b8c0c7;--mat-sys-outline:#5a5a5a;--mat-sys-outline-variant:#404244}.bluegrey-lightgreen-theme{--theme-warn:#f44336;--theme-warn-lighter:rgb(96.3089160192%, 36.9160192379%, 32.5538290788%);--theme-warn-light:rgb(96.7240103589%, 44.0103588605%, 40.1387347392%);--theme-warn-darker:rgb(95.0636330004%, 15.63300037%, 9.7991120977%);--theme-warn-dark:rgb(91.8368479467%, 10.9655937847%, 5.0258971513%);--theme-warn-fade-10:#f44336;--theme-warn-fade-20:#f44336;--theme-warn-fade-30:#f44336;--theme-warn-fade-40:#f44336;--theme-warn-fade-50:#f44336;--mat-sys-error:#f44336;--mat-sys-on-error:#fff}@media screen and (-webkit-min-device-pixel-ratio:0){}</style><link rel="stylesheet" href="styles.css" media="print" data-beasties-media="all"><noscript><link rel="stylesheet" href="styles.css"></noscript></head>
+<body class="bluegrey-lightgreen-theme">
+  <app-root></app-root>
+<link rel="modulepreload" href="rolldown-runtime-BoHGiXSq.js"><link rel="modulepreload" href="chunk-DBPdFzgj.js"><link rel="modulepreload" href="chunk-Cv2YgWUq.js"><link rel="modulepreload" href="chunk-1qQQGal7.js"><script src="polyfills.js" type="module"></script><script src="scripts.js" defer></script><script src="main.js" type="module"></script><script>document.querySelectorAll('link[data-beasties-media]').forEach(function(l){l.media=l.getAttribute('data-beasties-media');l.removeAttribute('data-beasties-media')})</script></body>
+</html></code></pre>
+                        </div>
+                    </div>
+
+                    <div class="section-label">Actionable Remediation</div>
+                    <div class="remediation-box">
+                        <pre class="remediation-text">Configure a strict Content Security Policy using the 'Content-Security-Policy' HTTP response header, defining permitted sources for scripts, styles, images, and other resources.</pre>
+                    </div>
+
+                    <div class="section-label">References & Standards</div><ul class="references-list"><li><a href="https://cwe.mitre.org/data/definitions/693.html" target="_blank" rel="noopener">https://cwe.mitre.org/data/definitions/693.html</a></li><li><a href="https://owasp.org/Top10/A05_2021-Security_Misconfiguration/" target="_blank" rel="noopener">https://owasp.org/Top10/A05_2021-Security_Misconfiguration/</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html" target="_blank" rel="noopener">https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html</a></li></ul>
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- REMEDIATION SUMMARY MATRIX -->
+        <div class="section-box">
+            <h2 class="section-heading">Remediation Summary Matrix</h2>
+            <table class="remed-table">
+                <thead>
+                    <tr>
+                        <th style="width: 12%;">ID</th>
+                        <th style="width: 25%;">Vulnerability</th>
+                        <th style="width: 10%;">Severity</th>
+                        <th style="width: 12%;">CWE</th>
+                        <th style="width: 41%;">Remediation Guidance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+            <tr>
+                <td><strong>BS-FIND-003</strong></td>
+                <td>Strict-Transport-Security Header Not Set</td>
+                <td><span class="severity-pill" style="background-color: #ef4444">Critical</span></td>
+                <td>CWE-319</td>
+                <td class="remed-cell">Configure the web server or reverse proxy to return the 'Strict-Transport-Security' response header (e.g., 'Strict-Transport-Security: max-age=31536000; includeSubDomains') on all ...</td>
+            </tr>
+            
+            <tr>
+                <td><strong>BS-FIND-004</strong></td>
+                <td>Content Security Policy (CSP) Header Not Set</td>
+                <td><span class="severity-pill" style="background-color: #ef4444">Critical</span></td>
+                <td>CWE-693</td>
+                <td class="remed-cell">Configure a strict Content Security Policy using the 'Content-Security-Policy' HTTP response header, defining permitted sources for scripts, styles, images, and other resources....</td>
+            </tr>
+            
+                </tbody>
+            </table>
+        </div>
+
+        <!-- METHODOLOGY NOTE -->
+        <div class="section-box">
+            <h2 class="section-heading">Methodology Note</h2>
+            <div class="methodology-box">
+                <p>
+                    <strong>Assessment Methodology:</strong> This assessment was conducted utilizing automated OWASP ZAP dynamic application security testing (DAST) restricted strictly to authorized in-scope endpoints, integrated with Google Gemini API for deep triage and false-positive reduction. Raw scanner alerts were grouped by root cause and correlated against HTTP request and response evidence. Gemini AI validated each alert to eliminate scanner hallucinations and identify novel vulnerability patterns.
+                </p>
+                <br>
+                <p>
+                    <strong>Important Disclaimer:</strong> This automated and AI-assisted assessment augments, but does not replace, comprehensive manual penetration testing, source code review, and threat modeling. Testing was conducted exclusively against targets authorized by the assessment requestor.
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

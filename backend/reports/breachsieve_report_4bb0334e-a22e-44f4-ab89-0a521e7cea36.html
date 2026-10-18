@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BreachSieve Vulnerability Report - https://testphp.vulnweb.com</title>
+    <style>
+        :root {
+            --bg-color: #0b1120;
+            --surface-color: #1e293b;
+            --surface-border: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-cyan: #06b6d4;
+            --accent-emerald: #10b981;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 30px;
+        }
+        .report-container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border: 1px solid var(--surface-border);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--surface-border);
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+        .logo-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .report-subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        .risk-badge {
+            background: #0f172a;
+            border: 1px solid var(--accent-cyan);
+            border-radius: 10px;
+            padding: 12px 20px;
+            text-align: center;
+        }
+        .risk-score {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--accent-cyan);
+        }
+        .risk-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .metric-card {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--surface-border);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 26px;
+            font-weight: 700;
+        }
+        .metric-name {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .section-box {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 25px;
+        }
+        .section-heading {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #f1f5f9;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 8px;
+        }
+        .scope-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .scope-table th, .scope-table td {
+            text-align: left;
+            padding: 10px 14px;
+            border-bottom: 1px solid #334155;
+            font-size: 14px;
+        }
+        .scope-table th {
+            color: var(--text-muted);
+            font-weight: 600;
+            width: 25%;
+        }
+        .rule-pre {
+            background: #0f172a;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            color: #e2e8f0;
+        }
+        .finding-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            margin-bottom: 22px;
+            overflow: hidden;
+        }
+        .finding-header {
+            background: #0f172a;
+            padding: 18px 24px;
+            border-bottom: 1px solid #334155;
+        }
+        .finding-title-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        .finding-id {
+            font-family: monospace;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            font-size: 15px;
+        }
+        .finding-title {
+            font-size: 18px;
+            font-weight: 600;
+            flex-grow: 1;
+        }
+        .severity-badge {
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 12px;
+            color: #ffffff;
+            text-transform: uppercase;
+        }
+        .novel-badge {
+            background: #8b5cf6;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .finding-meta-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .meta-tag {
+            background: #1e293b;
+            border: 1px solid #475569;
+            color: #cbd5e1;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        .finding-body {
+            padding: 24px;
+        }
+        .section-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin: 16px 0 6px 0;
+        }
+        .section-label:first-child {
+            margin-top: 0;
+        }
+        .url-box {
+            background: #0f172a;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+            word-break: break-all;
+            color: #38bdf8;
+            border: 1px solid #1e293b;
+        }
+        .description-text {
+            font-size: 14px;
+            color: #e2e8f0;
+        }
+        .ai-box {
+            background: rgba(14, 165, 233, 0.08);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 18px 0;
+        }
+        .ai-box-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .verdict-tag {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .verdict-confirmed { background: #ef4444; color: white; }
+        .verdict-needs_review { background: #f59e0b; color: white; }
+        .verdict-false_positive { background: #10b981; color: white; }
+        .ai-reasoning {
+            font-size: 13px;
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+        .evidence-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 16px 0;
+        }
+        .evidence-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        .code-block {
+            background: #090d16;
+            border: 1px solid #1e293b;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #94a3b8;
+            max-height: 220px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .remediation-box {
+            background: #0f172a;
+            border-left: 4px solid var(--accent-emerald);
+            padding: 14px 18px;
+            border-radius: 0 8px 8px 0;
+        }
+        .remediation-text {
+            font-family: monospace;
+            font-size: 13px;
+            color: #e2e8f0;
+            white-space: pre-wrap;
+        }
+        .references-list {
+            margin-left: 20px;
+            margin-top: 6px;
+            font-size: 13px;
+        }
+        .references-list a {
+            color: #38bdf8;
+            text-decoration: none;
+        }
+        .references-list a:hover {
+            text-decoration: underline;
+        }
+        .remed-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .remed-table th, .remed-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #334155;
+            text-align: left;
+        }
+        .remed-table th {
+            background: #0f172a;
+            color: var(--text-muted);
+        }
+        .remed-cell {
+            font-family: monospace;
+            font-size: 12px;
+            color: #cbd5e1;
+        }
+        .severity-pill {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+        }
+        .methodology-box {
+            background: #0f172a;
+            border: 1px solid var(--surface-border);
+            border-radius: 10px;
+            padding: 20px;
+            font-size: 13px;
+            color: #94a3b8;
+            line-height: 1.6;
+        }
+        @media print {
+            body { background-color: #ffffff; color: #000000; padding: 0; }
+            .report-container { max-width: 100%; }
+            .header, .section-box, .finding-card {
+                background: #ffffff !important;
+                border: 1px solid #cccccc !important;
+                color: #000000 !important;
+                page-break-inside: avoid;
+            }
+            .code-block, .url-box, .remediation-box {
+                background: #f8fafc !important;
+                color: #000000 !important;
+                border: 1px solid #e2e8f0 !important;
+            }
+            .meta-tag, .finding-header {
+                background: #f1f5f9 !important;
+                color: #000000 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- HEADER & EXECUTIVE SUMMARY -->
+        <div class="header">
+            <div class="header-top">
+                <div class="logo-title">
+                    <div>
+                        <div class="brand">BREACHSIEVE</div>
+                        <div class="report-subtitle">Automated DAST & Gemini-Triaged Security Assessment Report</div>
+                    </div>
+                </div>
+                <div class="risk-badge">
+                    <div class="risk-score">0.0</div>
+                    <div class="risk-label">Overall Risk Score</div>
+                </div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" style="color: #ef4444;">0</div>
+                    <div class="metric-name">Critical</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: #f97316;">0</div>
+                    <div class="metric-name">High</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: #eab308;">0</div>
+                    <div class="metric-name">Medium</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: #3b82f6;">0</div>
+                    <div class="metric-name">Low</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: #10b981;">0</div>
+                    <div class="metric-name">False Positives Filtered</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: #a855f7;">0</div>
+                    <div class="metric-name">Novel Patterns</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCOPE AND AUTHORIZATION RECORD -->
+        <div class="section-box">
+            <h2 class="section-heading">Scope & Authorization Record</h2>
+            <table class="scope-table">
+                <tr>
+                    <th>Target Base URL:</th>
+                    <td><strong>https://testphp.vulnweb.com</strong></td>
+                </tr>
+                <tr>
+                    <th>Scan Mode:</th>
+                    <td>ACTIVE (Explicit 2nd confirmation verified)</td>
+                </tr>
+                <tr>
+                    <th>Authorization Status:</th>
+                    <td>&#9989; CONFIRMED - "I own this target or have written permission to test it"</td>
+                </tr>
+                <tr>
+                    <th>Authorization Timestamp:</th>
+                    <td>2026-10-17T15:37:46.138987+00:00</td>
+                </tr>
+                <tr>
+                    <th>Business Multiplier:</th>
+                    <td>1.0x</td>
+                </tr>
+                <tr>
+                    <th>Exposure Factor:</th>
+                    <td>1.0x</td>
+                </tr>
+                <tr>
+                    <th>In-Scope Allow-List Rules:</th>
+                    <td><div class="rule-pre">*.vulnweb.com
+testphp.vulnweb.com
+/api/*</div></td>
+                </tr>
+                <tr>
+                    <th>Out-of-Scope Rules:</th>
+                    <td><div class="rule-pre">/admin/*
+/internal/*</div></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- DETAILED FINDINGS -->
+        <div class="section-box">
+            <h2 class="section-heading">Confirmed & Needs-Review Vulnerability Findings (0)</h2>
+            <p style="color: var(--text-muted);">No confirmed security vulnerabilities detected within scope.</p>
+        </div>
+
+        <!-- REMEDIATION SUMMARY MATRIX -->
+        <div class="section-box">
+            <h2 class="section-heading">Remediation Summary Matrix</h2>
+            <table class="remed-table">
+                <thead>
+                    <tr>
+                        <th style="width: 12%;">ID</th>
+                        <th style="width: 25%;">Vulnerability</th>
+                        <th style="width: 10%;">Severity</th>
+                        <th style="width: 12%;">CWE</th>
+                        <th style="width: 41%;">Remediation Guidance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="5">No remediation actions needed.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- METHODOLOGY NOTE -->
+        <div class="section-box">
+            <h2 class="section-heading">Methodology Note</h2>
+            <div class="methodology-box">
+                <p>
+                    <strong>Assessment Methodology:</strong> This assessment was conducted utilizing automated OWASP ZAP dynamic application security testing (DAST) restricted strictly to authorized in-scope endpoints, integrated with Google Gemini API for deep triage and false-positive reduction. Raw scanner alerts were grouped by root cause and correlated against HTTP request and response evidence. Gemini AI validated each alert to eliminate scanner hallucinations and identify novel vulnerability patterns.
+                </p>
+                <br>
+                <p>
+                    <strong>Important Disclaimer:</strong> This automated and AI-assisted assessment augments, but does not replace, comprehensive manual penetration testing, source code review, and threat modeling. Testing was conducted exclusively against targets authorized by the assessment requestor.
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

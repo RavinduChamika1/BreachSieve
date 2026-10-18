@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BreachSieve Vulnerability Report - http://localhost:3000</title>
+    <style>
+        :root {
+            --bg-color: #0b1120;
+            --surface-color: #1e293b;
+            --surface-border: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-cyan: #06b6d4;
+            --accent-emerald: #10b981;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 30px;
+        }
+        .report-container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border: 1px solid var(--surface-border);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--surface-border);
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+        .logo-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .report-subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        .risk-badge {
+            background: #0f172a;
+            border: 1px solid var(--accent-cyan);
+            border-radius: 10px;
+            padding: 12px 20px;
+            text-align: center;
+        }
+        .risk-score {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--accent-cyan);
+        }
+        .risk-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .metric-card {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--surface-border);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 26px;
+            font-weight: 700;
+        }
+        .metric-name {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .section-box {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 25px;
+        }
+        .section-heading {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #f1f5f9;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 8px;
+        }
+        .scope-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .scope-table th, .scope-table td {
+            text-align: left;
+            padding: 10px 14px;
+            border-bottom: 1px solid #334155;
+            font-size: 14px;
+        }
+        .scope-table th {
+            color: var(--text-muted);
+            font-weight: 600;
+            width: 25%;
+        }
+        .rule-pre {
+            background: #0f172a;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            color: #e2e8f0;
+        }
+        .finding-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            margin-bottom: 22px;
+            overflow: hidden;
+        }
+        .finding-header {
+            background: #0f172a;
+            padding: 18px 24px;
+            border-bottom: 1px solid #334155;
+        }
+        .finding-title-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        .finding-id {
+            font-family: monospace;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            font-size: 15px;
+        }
+        .finding-title {
+            font-size: 18px;
+            font-weight: 600;
+            flex-grow: 1;
+        }
+        .severity-badge {
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 12px;
+            color: #ffffff;
+            text-transform: uppercase;
+        }
+        .novel-badge {
+            background: #8b5cf6;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .finding-meta-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .meta-tag {
+            background: #1e293b;
+            border: 1px solid #475569;
+            color: #cbd5e1;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        .finding-body {
+            padding: 24px;
+        }
+        .section-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin: 16px 0 6px 0;
+        }
+        .section-label:first-child {
+            margin-top: 0;
+        }
+        .url-box {
+            background: #0f172a;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+            word-break: break-all;
+            color: #38bdf8;
+            border: 1px solid #1e293b;
+        }
+        .description-text {
+            font-size: 14px;
+            color: #e2e8f0;
+        }
+        .ai-box {
+            background: rgba(14, 165, 233, 0.08);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 18px 0;
+        }
+        .ai-box-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .verdict-tag {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .verdict-confirmed { background: #ef4444; color: white; }
+        .verdict-needs_review { background: #f59e0b; color: white; }
+        .verdict-false_positive { background: #10b981; color: white; }
+        .ai-reasoning {
+            font-size: 13px;
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+        .evidence-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 16px 0;
+        }
+        .evidence-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        .code-block {
+            background: #090d16;
+            border: 1px solid #1e293b;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #94a3b8;
+            max-height: 220px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .remediation-box {
+            background: #0f172a;
+            border-left: 4px solid var(--accent-emerald);
+            padding: 14px 18px;
+            border-radius: 0 8px 8px 0;
+        }
+        .remediation-text {
+            font-family: monospace;
+            font-size: 13px;
+            color: #e2e8f0;
+            white-space: pre-wrap;
+        }
+        .references-list {
+            margin-left: 20px;
+            margin-top: 6px;
+            font-size: 13px;
+        }
+        .references-list a {
+            color: #38bdf8;
+            text-decoration: none;
+        }
+        .references-list a:hover {
+            text-decoration: underline;
+        }
+        .remed-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .remed-table th, .remed-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #334155;
+            text-align: left;
+        }
+        .remed-table th {
+            background: #0f172a;
+            color: var(--text-muted);
+        }
+        .remed-cell {
+            font-family: monospace;
+            font-size: 12px;
+            color: #cbd5e1;
+        }
+        .severity-pill {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+        }
+        .methodology-box {
+            background: #0f172a;
+            border: 1px solid var(--surface-border);
+            border-radius: 10px;
+            padding: 20px;
+            font-size: 13px;
+            color: #94a3b8;
+            line-height: 1.6;
+        }
+        @media print {
+            body { background-color: #ffffff; color: #000000; padding: 0; }
+            .report-container { max-width: 100%; }
+            .header, .section-box, .finding-card {
+                background: #ffffff !important;
+                border: 1px solid #cccccc !important;
+                color: #000000 !important;
+                page-break-inside: avoid;
+            }
+            .code-block, .url-box, .remediation-box {
+                background: #f8fafc !important;
+                color: #000000 !important;
+                border: 1px solid #e2e8f0 !important;
+            }
+            .meta-tag, .finding-header {
+                background: #f1f5f9 !important;
+                color: #000000 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- HEADER & EXECUTIVE SUMMARY -->
+        <div class="header">
+            <div class="header-top">
+                <div class="logo-title">
+                    <div>
+                        <div class="brand">BREACHSIEVE</div>
+                        <div class="report-subtitle">Automated DAST & Gemini-Triaged Security Assessment Report</div>
+                    </div>
+                </div>
+                <div class="risk-badge">
+                    <div class="risk-score">8.3</div>
+                    <div class="risk-label">Overall Risk Score</div>
+                </div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" style="color: #ef4444;">0</div>
+                    <div class="metric-name">Critical</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: #f97316;">3</div>
+                    <div class="metric-name">High</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: #eab308;">1</div>
+                    <div class="metric-name">Medium</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: #3b82f6;">0</div>
+                    <div class="metric-name">Low</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: #10b981;">2</div>
+                    <div class="metric-name">False Positives Filtered</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: #a855f7;">1</div>
+                    <div class="metric-name">Novel Patterns</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCOPE AND AUTHORIZATION RECORD -->
+        <div class="section-box">
+            <h2 class="section-heading">Scope & Authorization Record</h2>
+            <table class="scope-table">
+                <tr>
+                    <th>Target Base URL:</th>
+                    <td><strong>http://localhost:3000</strong></td>
+                </tr>
+                <tr>
+                    <th>Scan Mode:</th>
+                    <td>PASSIVE </td>
+                </tr>
+                <tr>
+                    <th>Authorization Status:</th>
+                    <td>&#9989; CONFIRMED - "I own this target or have written permission to test it"</td>
+                </tr>
+                <tr>
+                    <th>Authorization Timestamp:</th>
+                    <td>2026-10-17T15:51:28.388784+00:00</td>
+                </tr>
+                <tr>
+                    <th>Business Multiplier:</th>
+                    <td>2.0x</td>
+                </tr>
+                <tr>
+                    <th>Exposure Factor:</th>
+                    <td>0.8x</td>
+                </tr>
+                <tr>
+                    <th>In-Scope Allow-List Rules:</th>
+                    <td><div class="rule-pre">localhost:3000
+127.0.0.1</div></td>
+                </tr>
+                <tr>
+                    <th>Out-of-Scope Rules:</th>
+                    <td><div class="rule-pre">[None specified]</div></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- DETAILED FINDINGS -->
+        <div class="section-box">
+            <h2 class="section-heading">Confirmed & Needs-Review Vulnerability Findings (4)</h2>
+            
+            <div class="finding-card" id="BS-FIND-001">
+                <div class="finding-header">
+                    <div class="finding-title-row">
+                        <span class="finding-id">BS-FIND-001</span>
+                        <h3 class="finding-title">Missing Anti-clickjacking Header</h3>
+                        <span class="severity-badge" style="background-color: #eab308;">Medium</span>
+                        
+                    </div>
+                    <div class="finding-meta-row">
+                        <span class="meta-tag">CVSS: 6.9 (CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:L/A:N)</span>
+                        <span class="meta-tag">CWE-1021</span>
+                        <span class="meta-tag">A05:2021-Security Misconfiguration</span>
+                        <span class="meta-tag mitre">MITRE ATT&CK: T1190</span>
+                    </div>
+                </div>
+
+                <div class="finding-body">
+                    <div class="section-label">Affected Target URL</div>
+                    <div class="url-box">http://localhost:3000</div>
+
+                    <div class="section-label">Vulnerability Description</div>
+                    <p class="description-text">The response does not protect against 'ClickJacking' attacks. It should include either Content-Security-Policy with 'frame-ancestors' directive or X-Frame-Options.</p>
+
+                    <div class="ai-box">
+                        <div class="ai-box-header">
+                            <span class="ai-sparkle">&#10024;</span>
+                            <strong>Gemini AI Triage Verdict:</strong>
+                            <span class="verdict-tag verdict-confirmed">CONFIRMED</span>
+                        </div>
+                        <div class="ai-reasoning">
+                            <strong>Evidence-Quoted Reasoning:</strong> The response status is 'HTTP/1.1 200 OK' and serves HTML content as indicated by 'Content-Type: text/html'. Neither 'X-Frame-Options' nor a 'Content-Security-Policy' header with the 'frame-ancestors' directive is present in the response headers, leaving the application rendered in '<title>frontend</title>' vulnerable to framing and clickjacking attacks.
+                        </div>
+                    </div>
+
+                    <div class="evidence-grid">
+                        <div class="evidence-col">
+                            <div class="evidence-title">HTTP Request Evidence</div>
+                            <pre class="code-block"><code>GET http://localhost:3000 HTTP/1.1
+host: localhost:3000
+user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36
+pragma: no-cache
+cache-control: no-cache</code></pre>
+                        </div>
+                        <div class="evidence-col">
+                            <div class="evidence-title">HTTP Response Evidence</div>
+                            <pre class="code-block"><code>HTTP/1.1 200 OK
+Vary: Origin
+Content-Type: text/html
+Cache-Control: no-cache
+Etag: W/"277-eOaHXd5eVjSF6Q6vUDl8nayX7Rs"
+Date: Sat, 17 Oct 2026 15:43:27 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Content-Length: 631
+
+
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+    <script type="module" src="/@vite/client"></script>
+
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>frontend</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx?t=1792251213816"></script>
+  </body>
+</html></code></pre>
+                        </div>
+                    </div>
+
+                    <div class="section-label">Actionable Remediation</div>
+                    <div class="remediation-box">
+                        <pre class="remediation-text">Add 'Content-Security-Policy: frame-ancestors 'self'' (or 'none') and 'X-Frame-Options: SAMEORIGIN' (or 'DENY') headers to all HTML responses.</pre>
+                    </div>
+
+                    <div class="section-label">References & Standards</div><ul class="references-list"><li><a href="https://cwe.mitre.org/data/definitions/1021.html" target="_blank" rel="noopener">https://cwe.mitre.org/data/definitions/1021.html</a></li><li><a href="https://owasp.org/www-community/attacks/Clickjacking" target="_blank" rel="noopener">https://owasp.org/www-community/attacks/Clickjacking</a></li></ul>
+                </div>
+            </div>
+            
+            <div class="finding-card" id="BS-FIND-002">
+                <div class="finding-header">
+                    <div class="finding-title-row">
+                        <span class="finding-id">BS-FIND-002</span>
+                        <h3 class="finding-title">X-Content-Type-Options Header Missing</h3>
+                        <span class="severity-badge" style="background-color: #f97316;">High</span>
+                        
+                    </div>
+                    <div class="finding-meta-row">
+                        <span class="meta-tag">CVSS: 8.0 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N)</span>
+                        <span class="meta-tag">CWE-693</span>
+                        <span class="meta-tag">A05:2021-Security Misconfiguration</span>
+                        <span class="meta-tag mitre">MITRE ATT&CK: T1562</span>
+                    </div>
+                </div>
+
+                <div class="finding-body">
+                    <div class="section-label">Affected Target URL</div>
+                    <div class="url-box">http://localhost:3000/favicon.svg</div>
+
+                    <div class="section-label">Vulnerability Description</div>
+                    <p class="description-text">The Anti-MIME-Sniffing header X-Content-Type-Options was not set to 'nosniff'. This allows older versions of Internet Explorer and Chrome to perform MIME-sniffing on the response body, potentially causing the response body to be interpreted and displayed as a content type other than the declared content type. Current (early 2014) and legacy versions of Firefox will use the declared content type (if one is set), rather than performing MIME-sniffing.</p>
+
+                    <div class="ai-box">
+                        <div class="ai-box-header">
+                            <span class="ai-sparkle">&#10024;</span>
+                            <strong>Gemini AI Triage Verdict:</strong>
+                            <span class="verdict-tag verdict-confirmed">CONFIRMED</span>
+                        </div>
+                        <div class="ai-reasoning">
+                            <strong>Evidence-Quoted Reasoning:</strong> The response returns 'HTTP/1.1 200 OK' with 'Content-Type: image/svg+xml', but completely omits the 'X-Content-Type-Options' security header. Because SVG files can carry executable scripts and XML payloads, failing to enforce 'nosniff' leaves the resource susceptible to MIME-type sniffing vulnerabilities in supporting user agents.
+                        </div>
+                    </div>
+
+                    <div class="evidence-grid">
+                        <div class="evidence-col">
+                            <div class="evidence-title">HTTP Request Evidence</div>
+                            <pre class="code-block"><code>GET http://localhost:3000/favicon.svg HTTP/1.1
+host: localhost:3000
+user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36
+pragma: no-cache
+cache-control: no-cache
+referer: http://localhost:3000/sitemap.xml</code></pre>
+                        </div>
+                        <div class="evidence-col">
+                            <div class="evidence-title">HTTP Response Evidence</div>
+                            <pre class="code-block"><code>HTTP/1.1 200 OK
+Vary: Origin
+Content-Length: 9522
+Content-Type: image/svg+xml
+Last-Modified: Sat, 17 Oct 2026 04:12:13 GMT
+ETag: W/"9522-1792210333392"
+Cache-Control: no-cache
+Date: Sat, 17 Oct 2026 15:43:27 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+
+
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="46" fill="none" viewBox="0 0 48 46"><path fill="#863bff" d="M25.946 44.938c-.664.845-2.021.375-2.021-.698V33.937a2.26 2.26 0 0 0-2.262-2.262H10.287c-.92 0-1.456-1.04-.92-1.788l7.48-10.471c1.07-1.497 0-3.578-1.842-3.578H1.237c-.92 0-1.456-1.04-.92-1.788L10.013.474c.214-.297.556-.474.92-.474h28.894c.92 0 1.456 1.04.92 1.788l-7.48 10.471c-1.07 1.498 0 3.579 1.842 3.579h11.377c.943 0 1.473 1.088.89 1.83L25.947 44.94z" style="fill:#863bff;fill:color(display-p3 .5252 .23 1);fill-opacity:1"/><mask id="a" width="48" height="46" x="0" y="0" maskUnits="userSpaceOnUse" style="mask-type:alpha"><path fill="#000" d="M25.842 44.938c-.664.844-2.021.375-2.021-.698V33.937a2.26 2.26 0 0 0-2.262-2.262H10.183c-.92 0-1.456-1.04-.92-1.788l7.48-10.471c1.07-1.498 0-3.579-1.842-3.579H1.133c-.92 0-1.456-1.04-.92-1.787L9.91.473c.214-.297.556-.474.92-.474h28.894c.92 0 1.456 1.04.92 1.788l-7.48 10.471c-1.07 1.498 0 3.578 1.842 3.578h11.377c.943 0 1.473 1.088.89 1.832L25.843 44.94z" style="fill:#000;fill-opacity:1"/></mask><g mask="url(#a)"><g filter="url(#b)"><ellipse cx="5.508" cy="14.704" fill="#ede6ff" rx="5.508" ry="14.704" style="fill:#ede6ff;fill:color(display-p3 .9275 .9033 1);fill-opacity:1" transform="matrix(.00324 1 1 -.00324 -4.47 31.516)"/></g><g filter="url(#c)"><ellipse cx="10.399" cy="29.851" fill="#ede6ff" rx="10.399" ry="29.851" style="fill:#ede6ff;fill:color(display-p3 .9275 .9033 1);fill-opacity:1" transform="matrix(.00324 1 1 -.00324 -39.328 7.883)"/></g><g filter="url(#d)"><ellipse cx="5.508" cy="30.487" fill="#7e14ff" rx="5.508" ry="30.487" style="fill:#7e14ff;fill:color(display-p3 .4922 .0767 1);fill-opacity:1" transform="rotate(89.814 -25.913 -14.639)scale(1 -1)"/></g><g filter="url(#e)"><ellipse cx="5.508" cy="30.599" fill="#7e14ff" rx="5.508" ry="30.599" style="fill:#7e14ff;fill:color(display-p3 .4922 .0767 1);fill-opacity:1" transform="rotate(89.814 -32.644 -3.334)scale(1 -1)"/></g><g filter="url(#f)"><ellipse cx="5.508" cy="30.599" fill="#7e14ff" rx="5.508" ry="30.599" style="fill:#7e14ff;fill:color(display-p3 .4922 .0767 1);fill-opacity:1" transform="matrix(.00324 1 1 -.00324 -34.34 30.47)"/></g><g filter="url(#g)"><ellipse cx="14.072" cy="22.078" fill="#ede6ff" rx="14.072" ry="22.078" style="fill:#ede6ff;fill:color(display-p3 .9275 .9033 1);fill-opacity:1" transform="rotate(93.35 24.506 48.493)scale(-1 1)"/></g><g filter="url(#h)"><ellipse cx="3.47" cy="21.501" fill="#7e14ff" rx="3.47" ry="21.501" style="fill:#7e14ff;fill:color(display-p3 .4922 .0767 1);fill-opacity:1" transform="rotate(89.009 28.708 47.59)scale(-1 1)"/></g><g filter="url(#i)"><ellipse cx="3.47" cy="21.501" fill="#7e14ff" rx="3.47" ry="21.501" style="fill:#7e14ff;fill:color(display-p3 .4922 .0767 1);fill-opacity:1" transform="rotate(89.009 28.708 47.59)scale(-1 1)"/></g><g filter="url(#j)"><ellipse cx=".387" cy="8.972" fill="#7e14ff" rx="4.407" ry="29.108" style="fill:#7e14ff;fill:color(display-p3 .4922 .0767 1);fill-opacity:1" transform="rotate(39.51 .387 8.972)"/></g><g filter="url(#k)"><ellipse cx="47.523" cy="-6.092" fill="#7e14ff" rx="4.407" ry="29.108" style="fill:#7e14ff;fill:color(display-p3 .4922 .0767 1);fill-opacity:1" transform="rotate(37.892 47.523 -6.092)"/></g><g filter="url(#l)"><ellipse cx="41.412" cy="6.333" fill="#47bfff" rx="5.971" ry="9.665" style="fill:#47bfff;fill:color(display-p3 .2799 .748 1);fill-opacity:1" transform="rotate(37.892 41.412 6.333)"/></g><g filter="url(#m)"><ellipse cx="-1.879" cy="38.332" fill="#7e14ff" rx="4.407" ry="29.108" style="fill:#7e14ff;fill:color(display-p3 .4922 .0767 1);fill-opacity:1" transform="rotate(37.892 -1.88 38.332)"/></g><g filter="url(#n)"><ellipse cx="-1.879" cy="38.332" fill="#7e14ff" rx="4.407" ry="29.108" style="fill:#7e14ff;fill:color(display-p3 .4922 .0767 1);fill-opacity:1" transform="rotate(37.892 -1.88 38.332)"/></g><g filter="url(#o)"><ellipse cx="35.651" cy="29.907" fill="#7e14ff" rx="4.407" ry="29.108" style="fill:#7e14ff;fill:color(display-p3 .4922 .0767 1);fill-opacity:1" transform="rotate(37.892 35.651 29.907)"/></g><g filter="url(#p)"><ellipse cx="38.418" cy="32.4" fill="#47bfff" rx="5.971" ry="15.297" style="fill:#47bfff;fill:color(display-p3 .2799 .748 1);fill-opacity:1" transform="rotate(37.892 38.418 32.4)"/></g></g><defs><filter id="b" width="60.045" height="41.654" x="-19.77" y="16.149" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="7.659"/></filter><filter id="c" width="90.34" height="51.437" x="-54.613" y="-7.533" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="7.659"/></filter><filter id="d" width="79.355" height="29.4" x="-49.64" y="2.03" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="e" width="79.579" height="29.4" x="-45.045" y="20.029" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="f" width="79.579" height="29.4" x="-43.513" y="21.178" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="g" width="74.749" height="58.852" x="15.756" y="-17.901" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="7.659"/></filter><filter id="h" width="61.377" height="25.362" x="23.548" y="2.284" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="i" width="61.377" height="25.362" x="23.548" y="2.284" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="j" width="56.045" height="63.649" x="-27.636" y="-22.853" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="k" width="54.814" height="64.646" x="20.116" y="-38.415" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="l" width="33.541" height="35.313" x="24.641" y="-11.323" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="m" width="54.814" height="64.646" x="-29.286" y="6.009" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="n" width="54.814" height="64.646" x="-29.286" y="6.009" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="o" width="54.814" height="64.646" x="8.244" y="-2.416" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="p" width="39.409" height="43.623" x="18.713" y="10.588" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter></defs></svg></code></pre>
+                        </div>
+                    </div>
+
+                    <div class="section-label">Actionable Remediation</div>
+                    <div class="remediation-box">
+                        <pre class="remediation-text">Configure the web server or application framework to send 'X-Content-Type-Options: nosniff' on all HTTP responses, including static assets.</pre>
+                    </div>
+
+                    <div class="section-label">References & Standards</div><ul class="references-list"><li><a href="https://cwe.mitre.org/data/definitions/693.html" target="_blank" rel="noopener">https://cwe.mitre.org/data/definitions/693.html</a></li><li><a href="https://owasp.org/Top10/A05_2021-Security_Misconfiguration/" target="_blank" rel="noopener">https://owasp.org/Top10/A05_2021-Security_Misconfiguration/</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html" target="_blank" rel="noopener">https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html</a></li></ul>
+                </div>
+            </div>
+            
+            <div class="finding-card" id="BS-FIND-003">
+                <div class="finding-header">
+                    <div class="finding-title-row">
+                        <span class="finding-id">BS-FIND-003</span>
+                        <h3 class="finding-title">Content Security Policy (CSP) Header Not Set</h3>
+                        <span class="severity-badge" style="background-color: #f97316;">High</span>
+                        
+                    </div>
+                    <div class="finding-meta-row">
+                        <span class="meta-tag">CVSS: 8.0 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N)</span>
+                        <span class="meta-tag">CWE-693</span>
+                        <span class="meta-tag">A05:2021-Security Misconfiguration</span>
+                        <span class="meta-tag mitre">MITRE ATT&CK: T1562</span>
+                    </div>
+                </div>
+
+                <div class="finding-body">
+                    <div class="section-label">Affected Target URL</div>
+                    <div class="url-box">http://localhost:3000</div>
+
+                    <div class="section-label">Vulnerability Description</div>
+                    <p class="description-text">Content Security Policy (CSP) is an added layer of security that helps to detect and mitigate certain types of attacks, including Cross Site Scripting (XSS) and data injection attacks. These attacks are used for everything from data theft to site defacement or distribution of malware. CSP provides a set of standard HTTP headers that allow website owners to declare approved sources of content that browsers should be allowed to load on that page — covered types are JavaScript, CSS, HTML frames, fonts, images and embeddable objects such as Java applets, ActiveX, audio and video files.</p>
+
+                    <div class="ai-box">
+                        <div class="ai-box-header">
+                            <span class="ai-sparkle">&#10024;</span>
+                            <strong>Gemini AI Triage Verdict:</strong>
+                            <span class="verdict-tag verdict-confirmed">CONFIRMED</span>
+                        </div>
+                        <div class="ai-reasoning">
+                            <strong>Evidence-Quoted Reasoning:</strong> The response returns an HTML document as indicated by "Content-Type: text/html" and the body starting with "<!doctype html>". However, the response headers completely lack a "Content-Security-Policy" header, and the HTML "<head>" contains no "<meta http-equiv="Content-Security-Policy">" tag. This directly confirms the scanner's finding of a missing CSP.
+                        </div>
+                    </div>
+
+                    <div class="evidence-grid">
+                        <div class="evidence-col">
+                            <div class="evidence-title">HTTP Request Evidence</div>
+                            <pre class="code-block"><code>GET http://localhost:3000 HTTP/1.1
+host: localhost:3000
+user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36
+pragma: no-cache
+cache-control: no-cache</code></pre>
+                        </div>
+                        <div class="evidence-col">
+                            <div class="evidence-title">HTTP Response Evidence</div>
+                            <pre class="code-block"><code>HTTP/1.1 200 OK
+Vary: Origin
+Content-Type: text/html
+Cache-Control: no-cache
+Etag: W/"277-eOaHXd5eVjSF6Q6vUDl8nayX7Rs"
+Date: Sat, 17 Oct 2026 15:43:27 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Content-Length: 631
+
+
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+    <script type="module" src="/@vite/client"></script>
+
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>frontend</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx?t=1792251213816"></script>
+  </body>
+</html></code></pre>
+                        </div>
+                    </div>
+
+                    <div class="section-label">Actionable Remediation</div>
+                    <div class="remediation-box">
+                        <pre class="remediation-text">Configure the web server or reverse proxy to serve an appropriate Content-Security-Policy (CSP) HTTP response header defining approved origins for scripts, styles, and other resources.</pre>
+                    </div>
+
+                    <div class="section-label">References & Standards</div><ul class="references-list"><li><a href="https://cwe.mitre.org/data/definitions/693.html" target="_blank" rel="noopener">https://cwe.mitre.org/data/definitions/693.html</a></li><li><a href="https://owasp.org/Top10/A05_2021-Security_Misconfiguration/" target="_blank" rel="noopener">https://owasp.org/Top10/A05_2021-Security_Misconfiguration/</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html" target="_blank" rel="noopener">https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html</a></li></ul>
+                </div>
+            </div>
+            
+            <div class="finding-card" id="BS-FIND-006">
+                <div class="finding-header">
+                    <div class="finding-title-row">
+                        <span class="finding-id">BS-FIND-006</span>
+                        <h3 class="finding-title">HTTP Only Site</h3>
+                        <span class="severity-badge" style="background-color: #f97316;">High</span>
+                        <span class="novel-badge">Novel Pattern</span>
+                    </div>
+                    <div class="finding-meta-row">
+                        <span class="meta-tag">CVSS: 8.5 (CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:N)</span>
+                        <span class="meta-tag">CWE-311</span>
+                        <span class="meta-tag">A05:2021-Security Misconfiguration</span>
+                        <span class="meta-tag mitre">MITRE ATT&CK: T1190</span>
+                    </div>
+                </div>
+
+                <div class="finding-body">
+                    <div class="section-label">Affected Target URL</div>
+                    <div class="url-box">http://localhost:3000</div>
+
+                    <div class="section-label">Vulnerability Description</div>
+                    <p class="description-text">The site is only served under HTTP and not HTTPS.</p>
+
+                    <div class="ai-box">
+                        <div class="ai-box-header">
+                            <span class="ai-sparkle">&#10024;</span>
+                            <strong>Gemini AI Triage Verdict:</strong>
+                            <span class="verdict-tag verdict-confirmed">CONFIRMED</span>
+                        </div>
+                        <div class="ai-reasoning">
+                            <strong>Evidence-Quoted Reasoning:</strong> Confirmed vulnerability based on corroborating scanner evidence: ''.
+                        </div>
+                    </div>
+
+                    <div class="evidence-grid">
+                        <div class="evidence-col">
+                            <div class="evidence-title">HTTP Request Evidence</div>
+                            <pre class="code-block"><code>GET https://localhost:3000 HTTP/1.1
+host: localhost:3000
+user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36
+pragma: no-cache
+cache-control: no-cache</code></pre>
+                        </div>
+                        <div class="evidence-col">
+                            <div class="evidence-title">HTTP Response Evidence</div>
+                            <pre class="code-block"><code>HTTP/1.0 0</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="section-label">Actionable Remediation</div>
+                    <div class="remediation-box">
+                        <pre class="remediation-text">Configure your web or application server to use SSL (https).</pre>
+                    </div>
+
+                    <div class="section-label">References & Standards</div><ul class="references-list"><li><a href="https://cwe.mitre.org/data/definitions/311.html" target="_blank" rel="noopener">https://cwe.mitre.org/data/definitions/311.html</a></li><li><a href="https://attack.mitre.org/techniques/T1190/" target="_blank" rel="noopener">https://attack.mitre.org/techniques/T1190/</a></li></ul>
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- REMEDIATION SUMMARY MATRIX -->
+        <div class="section-box">
+            <h2 class="section-heading">Remediation Summary Matrix</h2>
+            <table class="remed-table">
+                <thead>
+                    <tr>
+                        <th style="width: 12%;">ID</th>
+                        <th style="width: 25%;">Vulnerability</th>
+                        <th style="width: 10%;">Severity</th>
+                        <th style="width: 12%;">CWE</th>
+                        <th style="width: 41%;">Remediation Guidance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+            <tr>
+                <td><strong>BS-FIND-001</strong></td>
+                <td>Missing Anti-clickjacking Header</td>
+                <td><span class="severity-pill" style="background-color: #eab308">Medium</span></td>
+                <td>CWE-1021</td>
+                <td class="remed-cell">Add 'Content-Security-Policy: frame-ancestors 'self'' (or 'none') and 'X-Frame-Options: SAMEORIGIN' (or 'DENY') headers to all HTML responses....</td>
+            </tr>
+            
+            <tr>
+                <td><strong>BS-FIND-002</strong></td>
+                <td>X-Content-Type-Options Header Missing</td>
+                <td><span class="severity-pill" style="background-color: #f97316">High</span></td>
+                <td>CWE-693</td>
+                <td class="remed-cell">Configure the web server or application framework to send 'X-Content-Type-Options: nosniff' on all HTTP responses, including static assets....</td>
+            </tr>
+            
+            <tr>
+                <td><strong>BS-FIND-003</strong></td>
+                <td>Content Security Policy (CSP) Header Not Set</td>
+                <td><span class="severity-pill" style="background-color: #f97316">High</span></td>
+                <td>CWE-693</td>
+                <td class="remed-cell">Configure the web server or reverse proxy to serve an appropriate Content-Security-Policy (CSP) HTTP response header defining approved origins for scripts, styles, and other resour...</td>
+            </tr>
+            
+            <tr>
+                <td><strong>BS-FIND-006</strong></td>
+                <td>HTTP Only Site</td>
+                <td><span class="severity-pill" style="background-color: #f97316">High</span></td>
+                <td>CWE-311</td>
+                <td class="remed-cell">Configure your web or application server to use SSL (https)....</td>
+            </tr>
+            
+                </tbody>
+            </table>
+        </div>
+
+        <!-- METHODOLOGY NOTE -->
+        <div class="section-box">
+            <h2 class="section-heading">Methodology Note</h2>
+            <div class="methodology-box">
+                <p>
+                    <strong>Assessment Methodology:</strong> This assessment was conducted utilizing automated OWASP ZAP dynamic application security testing (DAST) restricted strictly to authorized in-scope endpoints, integrated with Google Gemini API for deep triage and false-positive reduction. Raw scanner alerts were grouped by root cause and correlated against HTTP request and response evidence. Gemini AI validated each alert to eliminate scanner hallucinations and identify novel vulnerability patterns.
+                </p>
+                <br>
+                <p>
+                    <strong>Important Disclaimer:</strong> This automated and AI-assisted assessment augments, but does not replace, comprehensive manual penetration testing, source code review, and threat modeling. Testing was conducted exclusively against targets authorized by the assessment requestor.
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
